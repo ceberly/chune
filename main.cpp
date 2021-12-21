@@ -2,18 +2,37 @@
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl3.h"
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <iostream>
+#include <mutex>
 
 #include <SDL.h>
-
 #include <SDL_opengl.h>
 
-int main(void) {
-  fprintf(stderr, "setting up SDL2...\n");
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
-    fprintf(stderr, "error loading SDL: %s\n", SDL_GetError());
+using std::cerr;
+using std::endl;
+
+typedef struct GlobalMutableState {
+  int device_count;
+} GlobalMutableState;
+
+typedef std::mutex GlobalMutableStateMutex;
+
+int main() {
+  cerr << "setting up SDL2..." << endl;
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER |
+        SDL_INIT_AUDIO) != 0) {
+    cerr << "error loading SDL: " << SDL_GetError() << endl;
     return EXIT_FAILURE;
+  }
+
+  cerr << "setting up audio..." << endl;
+
+  const int count = SDL_GetNumAudioDevices(0);
+  cerr << "found " << count << " audio devices." << endl;
+
+  for (int i = 0; i < count; ++i) {
+    cerr << "\t" << "Audio device " << i << " " <<
+      SDL_GetAudioDeviceName(i, 0) << endl;
   }
 
   const char *glsl_version = "#version 130";
@@ -36,7 +55,7 @@ int main(void) {
   SDL_GL_MakeCurrent(window, gl_context);
   SDL_GL_SetSwapInterval(1);
 
-  fprintf(stderr, "setting up imgui...\n");
+  cerr << "setting up imgui..." << endl;
 
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -66,7 +85,7 @@ int main(void) {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
+    //if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
     
     {
       static float f = 0.0f;
@@ -74,7 +93,7 @@ int main(void) {
 
       ImGui::Begin("Hello, world!");
       ImGui::Text("This is some useful text.");
-      ImGui::Checkbox("Demo Window", &show_demo_window);
+      //ImGui::Checkbox("Demo Window", &show_demo_window);
 
       ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
       ImGui::ColorEdit3("clear color", (float*)&clear_color);
@@ -100,7 +119,7 @@ int main(void) {
   }
 
 
-  fprintf(stderr, "cleaning up...\n");
+  cerr << "cleaning up..." << endl;
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL2_Shutdown();
   ImGui::DestroyContext();
@@ -109,5 +128,5 @@ int main(void) {
   SDL_DestroyWindow(window);
   SDL_Quit();
 
-  return EXIT_SUCCESS;
+  return 0;
 }
